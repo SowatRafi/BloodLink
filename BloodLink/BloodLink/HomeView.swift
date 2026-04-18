@@ -79,6 +79,11 @@ struct HomeView: View {
                 .tabItem {
                     Label("Find Blood", systemImage: "magnifyingglass")
                 }
+            
+            ConversationListView()
+                .tabItem {
+                    Label("Messages", systemImage: "message.fill")
+                }
         }
         .tint(.red)
     }
