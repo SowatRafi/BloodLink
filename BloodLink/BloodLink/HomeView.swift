@@ -17,20 +17,23 @@ struct BloodRequest: Identifiable {
     let distance: String
 }
 
-// MARK: - Home / dashboard view
+// MARK: - Home view (tab container)
 struct HomeView: View {
 
+    // Donor state
     @State private var isOnline = false
     @State private var isLocked = false
     @State private var daysUntilEligible = 0
     @State private var showGoOnlineConfirm = false
 
+    // Stats
     @State private var totalDonations = 3
     @State private var livesSaved = 3
     @State private var nextEligibleDate = Calendar.current.date(
         byAdding: .day, value: 14, to: Date()
     ) ?? Date()
 
+    // Map
     @State private var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 23.8103, longitude: 90.4125),
@@ -38,11 +41,12 @@ struct HomeView: View {
         )
     )
 
+    // Dummy nearby requests
     let nearbyRequests: [BloodRequest] = [
-        BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8150, longitude: 90.4100), bloodType: "A+",  seekerName: "Rahim", distance: "0.8 km"),
-        BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8080, longitude: 90.4200), bloodType: "O-",  seekerName: "Karim", distance: "1.2 km"),
-        BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8200, longitude: 90.4050), bloodType: "B+",  seekerName: "Salma", distance: "2.1 km"),
-        BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8060, longitude: 90.4160), bloodType: "AB+", seekerName: "Nadia", distance: "3.0 km"),
+        BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8150, longitude: 90.4100), bloodType: "A+",  seekerName: "Rahim",  distance: "0.8 km"),
+        BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8080, longitude: 90.4200), bloodType: "O-",  seekerName: "Karim",  distance: "1.2 km"),
+        BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8200, longitude: 90.4050), bloodType: "B+",  seekerName: "Salma",  distance: "2.1 km"),
+        BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8060, longitude: 90.4160), bloodType: "AB+", seekerName: "Nadia",  distance: "3.0 km"),
     ]
 
     @State private var pulse = false
@@ -63,11 +67,28 @@ struct HomeView: View {
         return isOnline ? .green : .red
     }
 
+    // MARK: - Body
     var body: some View {
+        TabView {
+            donorTab
+                .tabItem {
+                    Label("Donate", systemImage: "drop.fill")
+                }
+
+            SeekerView()
+                .tabItem {
+                    Label("Find Blood", systemImage: "magnifyingglass")
+                }
+        }
+        .tint(.red)
+    }
+
+    // MARK: - Donor tab
+    var donorTab: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
 
-                // MARK: Full screen map
+                // Full screen map
                 Map(position: $cameraPosition) {
                     ForEach(nearbyRequests) { request in
                         Annotation(request.bloodType, coordinate: request.coordinate) {
@@ -77,7 +98,7 @@ struct HomeView: View {
                 }
                 .ignoresSafeArea(edges: .top)
 
-                // MARK: Bottom sheet
+                // Bottom sheet
                 VStack(spacing: 0) {
 
                     // Drag handle
@@ -101,7 +122,8 @@ struct HomeView: View {
                                                 height: pulse ? 140 : 110
                                             )
                                             .animation(
-                                                .easeInOut(duration: 1.2).repeatForever(autoreverses: true),
+                                                .easeInOut(duration: 1.2)
+                                                .repeatForever(autoreverses: true),
                                                 value: pulse
                                             )
 
@@ -112,7 +134,9 @@ struct HomeView: View {
                                                 height: pulse ? 170 : 130
                                             )
                                             .animation(
-                                                .easeInOut(duration: 1.2).repeatForever(autoreverses: true).delay(0.2),
+                                                .easeInOut(duration: 1.2)
+                                                .repeatForever(autoreverses: true)
+                                                .delay(0.2),
                                                 value: pulse
                                             )
                                     }
@@ -133,7 +157,6 @@ struct HomeView: View {
                                                     color: buttonColor.opacity(0.4),
                                                     radius: 12, x: 0, y: 6
                                                 )
-
                                             VStack(spacing: 4) {
                                                 Image(systemName: isLocked
                                                       ? "lock.fill"
