@@ -33,36 +33,66 @@ struct ContentView: View {
     @State private var isRegistered = false
     @State private var signedInWith: String = ""
 
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = true
+    @State private var showSplash = true
+
     var body: some View {
-        Group {
-            if isRegistered {
-                HomeView()
-            } else if isLoggedIn {
-                RegistrationView(
-                    signedInWith: signedInWith,
-                    onSignOut: {
-                        withAnimation {
-                            isLoggedIn = false
-                            signedInWith = ""
+        ZStack {
+
+            // MARK: Main app content
+            Group {
+                if isRegistered {
+                    HomeView()
+                } else if isLoggedIn {
+                    RegistrationView(
+                        signedInWith: signedInWith,
+                        onSignOut: {
+                            withAnimation {
+                                isLoggedIn = false
+                                signedInWith = ""
+                            }
+                        },
+                        onComplete: {
+                            withAnimation {
+                                isRegistered = true
+                            }
                         }
-                    },
-                    onComplete: {
+                    )
+                } else {
+                    LoginView(onLogin: { provider in
                         withAnimation {
-                            isRegistered = true
+                            signedInWith = provider
+                            isLoggedIn = true
+                        }
+                    })
+                }
+            }
+            .environmentObject(themeManager)
+            .preferredColorScheme(themeManager.colorScheme)
+
+            // MARK: Splash overlay
+            if showSplash {
+                SplashView()
+                    .transition(.opacity)
+                    .zIndex(1)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+                            hasSeenOnboarding = true
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                showSplash = false
+                            }
                         }
                     }
-                )
-            } else {
-                LoginView(onLogin: { provider in
-                    withAnimation {
-                        signedInWith = provider
-                        isLoggedIn = true
-                    }
-                })
             }
         }
-        .environmentObject(themeManager)
-        .preferredColorScheme(themeManager.colorScheme)
+        .onAppear {
+            // Small delay so the root view is fully loaded first
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if !hasSeenOnboarding {
+                    showSplash = true
+                }
+            }
+        }
     }
 }
 
@@ -83,11 +113,16 @@ struct ThemePickerBar: View {
                     VStack(spacing: 6) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(isSelected ? Color.blue.opacity(0.12) : Color.gray.opacity(0.15))
+                                .fill(isSelected
+                                      ? Color.blue.opacity(0.12)
+                                      : Color.gray.opacity(0.15))
                                 .frame(height: 48)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+                                        .stroke(
+                                            isSelected ? Color.blue : Color.clear,
+                                            lineWidth: 2
+                                        )
                                 )
                             Image(systemName: option.icon)
                                 .font(.title3)
@@ -340,9 +375,13 @@ struct RegistrationView: View {
                 // MARK: Signed in banner
                 Section {
                     HStack(spacing: 12) {
-                        Image(systemName: signedInWith == "Apple" ? "apple.logo" : "person.circle.fill")
+                        Image(systemName: signedInWith == "Apple"
+                              ? "apple.logo"
+                              : "person.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(signedInWith == "Apple" ? Color.primary : Color.blue)
+                            .foregroundStyle(signedInWith == "Apple"
+                                             ? Color.primary
+                                             : Color.blue)
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Signed in with \(signedInWith)")
@@ -371,7 +410,9 @@ struct RegistrationView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         TextField("Full name as per passport", text: $passportName)
                             .autocorrectionDisabled()
+                            #if os(iOS)
                             .textInputAutocapitalization(.words)
+                            #endif
                         Text("Enter your name exactly as it appears on your passport or government ID.")
                             .font(.caption)
                             .foregroundStyle(Color.gray)
@@ -439,8 +480,12 @@ struct RegistrationView: View {
                                     .fontWeight(heightUnit == unit ? .semibold : .regular)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
-                                    .background(heightUnit == unit ? Color.blue : Color.clear)
-                                    .foregroundStyle(heightUnit == unit ? Color.white : Color.blue)
+                                    .background(heightUnit == unit
+                                                ? Color.blue
+                                                : Color.clear)
+                                    .foregroundStyle(heightUnit == unit
+                                                     ? Color.white
+                                                     : Color.blue)
                                     .clipShape(Capsule())
                                 }
                             }
@@ -541,10 +586,13 @@ struct RegistrationView: View {
 
                     if hasDonateBefore {
 
-                        Toggle("I don't know the exact date", isOn: $lastDonationUnknown.animation())
-                            .onChange(of: lastDonationUnknown) {
-                                if lastDonationUnknown { showLastDonationPicker = false }
-                            }
+                        Toggle(
+                            "I don't know the exact date",
+                            isOn: $lastDonationUnknown.animation()
+                        )
+                        .onChange(of: lastDonationUnknown) {
+                            if lastDonationUnknown { showLastDonationPicker = false }
+                        }
 
                         if !lastDonationUnknown {
                             HStack {
@@ -580,13 +628,18 @@ struct RegistrationView: View {
                                 .font(.caption)
                                 .foregroundStyle(Color.orange)
                             } else if let days = daysSinceLastDonation {
-                                Label("\(days) days since last donation", systemImage: "drop.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.red)
+                                Label(
+                                    "\(days) days since last donation",
+                                    systemImage: "drop.fill"
+                                )
+                                .font(.caption)
+                                .foregroundStyle(Color.red)
                                 if let next = nextEligibleDateString {
                                     Label(
                                         next,
-                                        systemImage: days >= 90 ? "checkmark.circle.fill" : "clock"
+                                        systemImage: days >= 90
+                                        ? "checkmark.circle.fill"
+                                        : "clock"
                                     )
                                     .font(.caption)
                                     .foregroundStyle(days >= 90 ? Color.green : Color.gray)
@@ -622,6 +675,9 @@ struct RegistrationView: View {
                 }
             }
             .navigationTitle("Donor registration")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
         }
     }
 }
