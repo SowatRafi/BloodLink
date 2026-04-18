@@ -50,3 +50,22 @@ with seekers in real time based on location, blood type, and availability.
 ---
 
 ## Project Structure
+
+BloodLink/
+├── BloodLinkApp.swift       # App entry point
+├── ContentView.swift        # Root view + theme manager
+├── Views/
+│   ├── LoginView.swift
+│   ├── RegistrationView.swift
+│   ├── HomeView.swift
+│   ├── MapView.swift
+│   ├── ChatView.swift
+│   └── ProfileView.swift
+├── Models/
+│   ├── Donor.swift
+│   └── BloodRequest.swift
+├── Services/
+│   ├── LocationService.swift
+│   ├── NotificationService.swift
+│   └── AuthService.swift
+└── Assets.xcassets
