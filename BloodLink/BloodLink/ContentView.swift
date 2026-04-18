@@ -30,17 +30,25 @@ let themeOptions: [ThemeOption] = [
 struct ContentView: View {
     @StateObject private var themeManager = ThemeManager()
     @State private var isLoggedIn = false
+    @State private var isRegistered = false
     @State private var signedInWith: String = ""
 
     var body: some View {
         Group {
-            if isLoggedIn {
+            if isRegistered {
+                HomeView()
+            } else if isLoggedIn {
                 RegistrationView(
                     signedInWith: signedInWith,
                     onSignOut: {
                         withAnimation {
                             isLoggedIn = false
                             signedInWith = ""
+                        }
+                    },
+                    onComplete: {
+                        withAnimation {
+                            isRegistered = true
                         }
                     }
                 )
@@ -218,6 +226,7 @@ struct RegistrationView: View {
 
     let signedInWith: String
     let onSignOut: () -> Void
+    let onComplete: () -> Void
 
     // Personal details
     @State private var passportName = ""
@@ -605,7 +614,7 @@ struct RegistrationView: View {
                     Button("Complete registration") {
                         showAgeError = ageYears < 18
                         if ageYears >= 18 {
-                            // Move to next screen
+                            onComplete()
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
