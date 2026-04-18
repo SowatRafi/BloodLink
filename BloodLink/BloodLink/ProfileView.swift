@@ -7,7 +7,6 @@
 
 import SwiftUI
 import PhotosUI
-import UIKit
 
 // MARK: - Badge tier
 enum DonorBadge: String {
@@ -72,8 +71,37 @@ struct DonationRecord: Identifiable {
     let reportName: String?
 }
 
+// MARK: - Avatar image helper
+// Converts Data to SwiftUI Image without needing UIKit import
+struct AvatarImageView: View {
+    let data: Data
+    let size: CGFloat
+
+    var body: some View {
+        #if canImport(UIKit)
+        if let uiImg = UIImage(data: data) {
+            Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        }
+        #elseif canImport(AppKit)
+        if let nsImg = NSImage(data: data) {
+            Image(nsImage: nsImg)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        }
+        #endif
+    }
+}
+
 // MARK: - Profile view
 struct ProfileView: View {
+
+    @EnvironmentObject var themeManager: ThemeManager
 
     @State private var passportName = "Sowad Hossain Rafi"
     @State private var bloodGroup = "A+"
@@ -83,7 +111,7 @@ struct ProfileView: View {
     ) ?? Date()
     @State private var heightCm: Double = 175
     @State private var weightKg: Double = 72
-    @State private var address = "Dhaka, Bangladesh"
+    @State private var address = " Tangail, Bangladesh"
     @State private var isEditing = false
     @State private var showDatePicker = false
 
@@ -94,10 +122,34 @@ struct ProfileView: View {
     @State private var donationCount = 4
 
     @State private var donations: [DonationRecord] = [
-        DonationRecord(date: Date().addingTimeInterval(-86400 * 200), location: "Dhaka Medical College", bloodType: "A+", hasReport: true,  reportName: "Report_Jan2025.pdf"),
-        DonationRecord(date: Date().addingTimeInterval(-86400 * 120), location: "Square Hospital",       bloodType: "A+", hasReport: true,  reportName: "Report_Apr2025.pdf"),
-        DonationRecord(date: Date().addingTimeInterval(-86400 * 60),  location: "City Hospital",         bloodType: "A+", hasReport: false, reportName: nil),
-        DonationRecord(date: Date().addingTimeInterval(-86400 * 10),  location: "Popular Diagnostic",    bloodType: "A+", hasReport: true,  reportName: "Report_Dec2025.pdf"),
+        DonationRecord(
+            date: Date().addingTimeInterval(-86400 * 200),
+            location: "Dhaka Medical College",
+            bloodType: "A+",
+            hasReport: true,
+            reportName: "Report_Jan2025.pdf"
+        ),
+        DonationRecord(
+            date: Date().addingTimeInterval(-86400 * 120),
+            location: "Square Hospital",
+            bloodType: "A+",
+            hasReport: true,
+            reportName: "Report_Apr2025.pdf"
+        ),
+        DonationRecord(
+            date: Date().addingTimeInterval(-86400 * 60),
+            location: "City Hospital",
+            bloodType: "A+",
+            hasReport: false,
+            reportName: nil
+        ),
+        DonationRecord(
+            date: Date().addingTimeInterval(-86400 * 10),
+            location: "Popular Diagnostic",
+            bloodType: "A+",
+            hasReport: true,
+            reportName: "Report_Dec2025.pdf"
+        ),
     ]
 
     let bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
@@ -112,7 +164,8 @@ struct ProfileView: View {
     }
 
     var formattedDOB: String {
-        let f = DateFormatter(); f.dateStyle = .long
+        let f = DateFormatter()
+        f.dateStyle = .long
         return f.string(from: dateOfBirth)
     }
 
@@ -149,7 +202,8 @@ struct ProfileView: View {
     var isEligible: Bool { nextEligibleDate <= Date() }
 
     var formattedNextEligible: String {
-        let f = DateFormatter(); f.dateStyle = .medium
+        let f = DateFormatter()
+        f.dateStyle = .medium
         return f.string(from: nextEligibleDate)
     }
 
@@ -168,13 +222,8 @@ struct ProfileView: View {
                                     .fill(Color.red.opacity(0.12))
                                     .frame(width: 72, height: 72)
 
-                                if let data = avatarData,
-                                   let uiImg = UIImage(data: data) {
-                                    Image(uiImage: uiImg)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 72, height: 72)
-                                        .clipShape(Circle())
+                                if let data = avatarData {
+                                    AvatarImageView(data: data, size: 72)
                                 } else {
                                     Text(String(passportName.prefix(1)))
                                         .font(.system(size: 28, weight: .bold))
@@ -285,7 +334,8 @@ struct ProfileView: View {
                                             .fill(badge.color)
                                             .frame(
                                                 width: geo.size.width * min(
-                                                    Double(donationCount) / Double(badge.nextMilestone), 1.0
+                                                    Double(donationCount) / Double(badge.nextMilestone),
+                                                    1.0
                                                 ),
                                                 height: 8
                                             )
@@ -294,12 +344,15 @@ struct ProfileView: View {
                                 .frame(height: 8)
                             }
                         } else {
-                            Label("You have reached the highest tier!", systemImage: "crown.fill")
-                                .font(.caption)
-                                .foregroundStyle(badge.color)
+                            Label(
+                                "You have reached the highest tier!",
+                                systemImage: "crown.fill"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(badge.color)
                         }
 
-                        // Eligibility
+                        // Eligibility pill
                         HStack(spacing: 8) {
                             Image(systemName: isEligible
                                   ? "checkmark.circle.fill"
@@ -390,7 +443,8 @@ struct ProfileView: View {
                                 Text("\(Int(heightCm)) cm")
                                     .foregroundStyle(Color.gray)
                             }
-                            Slider(value: $heightCm, in: 50...250, step: 1).tint(.blue)
+                            Slider(value: $heightCm, in: 50...250, step: 1)
+                                .tint(.blue)
                         }
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
@@ -399,7 +453,8 @@ struct ProfileView: View {
                                 Text("\(Int(weightKg)) kg")
                                     .foregroundStyle(Color.gray)
                             }
-                            Slider(value: $weightKg, in: 20...250, step: 1).tint(.blue)
+                            Slider(value: $weightKg, in: 20...250, step: 1)
+                                .tint(.blue)
                         }
                     } else {
                         ProfileRow(label: "Height", value: "\(Int(heightCm)) cm")
@@ -428,7 +483,10 @@ struct ProfileView: View {
                             .foregroundStyle(Color.gray)
                             .padding(.vertical, 8)
                     } else {
-                        ForEach(Array(donations.enumerated()), id: \.element.id) { index, donation in
+                        ForEach(
+                            Array(donations.enumerated()),
+                            id: \.element.id
+                        ) { index, donation in
                             DonationTimelineRow(
                                 donation: donation,
                                 isLast: index == donations.count - 1
@@ -454,6 +512,15 @@ struct ProfileView: View {
                     }
                     .fontWeight(isEditing ? .bold : .regular)
                     .foregroundStyle(isEditing ? Color.green : Color.blue)
+                }
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink(
+                        destination: SettingsView()
+                            .environmentObject(themeManager)
+                    ) {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundStyle(Color.gray)
+                    }
                 }
             }
         }
@@ -535,7 +602,6 @@ struct DonationTimelineRow: View {
                     .font(.caption)
                     .foregroundStyle(Color.gray)
 
-                // Report row
                 if donation.hasReport, let reportName = donation.reportName {
                     HStack(spacing: 6) {
                         Image(systemName: "doc.fill")
@@ -554,9 +620,12 @@ struct DonationTimelineRow: View {
                     .background(Color.blue.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 } else {
-                    Label("No report uploaded yet", systemImage: "doc.badge.clock")
-                        .font(.caption)
-                        .foregroundStyle(Color.orange)
+                    Label(
+                        "No report uploaded yet",
+                        systemImage: "doc.badge.clock"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(Color.orange)
                 }
             }
             .padding(.bottom, isLast ? 0 : 16)
@@ -567,4 +636,5 @@ struct DonationTimelineRow: View {
 
 #Preview {
     ProfileView()
+        .environmentObject(ThemeManager())
 }
