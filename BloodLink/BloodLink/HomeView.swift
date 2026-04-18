@@ -84,6 +84,11 @@ struct HomeView: View {
                 .tabItem {
                     Label("Messages", systemImage: "message.fill")
                 }
+            
+            ProfileView()
+                .tabItem {
+                    Label("Profile", systemImage: "person.fill")
+                }
         }
         .tint(.red)
     }
