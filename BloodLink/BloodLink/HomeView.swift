@@ -20,6 +20,8 @@ struct BloodRequest: Identifiable {
 // MARK: - Home view (tab container)
 struct HomeView: View {
 
+    @EnvironmentObject var themeManager: ThemeManager
+
     // Donor state
     @State private var isOnline = false
     @State private var isLocked = false
@@ -50,6 +52,7 @@ struct HomeView: View {
     ]
 
     @State private var pulse = false
+    @State private var unreadNotifications = 3
 
     var formattedNextEligible: String {
         let f = DateFormatter()
@@ -70,22 +73,35 @@ struct HomeView: View {
     // MARK: - Body
     var body: some View {
         TabView {
+
+            // MARK: Donate tab
             donorTab
                 .tabItem {
                     Label("Donate", systemImage: "drop.fill")
                 }
 
+            // MARK: Find Blood tab
             SeekerView()
                 .tabItem {
                     Label("Find Blood", systemImage: "magnifyingglass")
                 }
-            
+
+            // MARK: Messages tab
             ConversationListView()
                 .tabItem {
                     Label("Messages", systemImage: "message.fill")
                 }
-            
+
+            // MARK: Alerts tab
+            NotificationView()
+                .tabItem {
+                    Label("Alerts", systemImage: "bell.fill")
+                }
+                .badge(unreadNotifications > 0 ? unreadNotifications : 0)
+
+            // MARK: Profile tab
             ProfileView()
+                .environmentObject(themeManager)
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
@@ -121,7 +137,7 @@ struct HomeView: View {
                     ScrollView {
                         VStack(spacing: 20) {
 
-                            // MARK: Big online/offline button
+                            // MARK: Online/offline button
                             VStack(spacing: 8) {
                                 ZStack {
                                     if isOnline {
@@ -257,17 +273,20 @@ struct HomeView: View {
                 .frame(maxHeight: 520)
             }
             .navigationTitle("BloodLink")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        // Open profile
                     } label: {
                         Image(systemName: "person.circle.fill")
                             .font(.title3)
                             .foregroundStyle(Color.red)
                     }
                 }
+                #endif
             }
             .confirmationDialog(
                 "Go online as donor?",
@@ -396,4 +415,5 @@ struct NearbyRequestRow: View {
 
 #Preview {
     HomeView()
+        .environmentObject(ThemeManager())
 }
