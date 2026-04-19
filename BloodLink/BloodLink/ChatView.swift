@@ -1,7 +1,9 @@
 import SwiftUI
 import PhotosUI
 import Combine
+#if os(iOS)
 import AVFoundation
+#endif
 
 // MARK: - Message type
 enum MessageType {
@@ -238,6 +240,7 @@ struct CallScreenView: View {
     }
 
     func applyAudioRoute(_ route: AudioRoute) {
+        #if os(iOS)
         let session = AVAudioSession.sharedInstance()
         try? session.setActive(true)
         switch route {
@@ -248,6 +251,7 @@ struct CallScreenView: View {
         case .headphones:
             try? session.overrideOutputAudioPort(.none)
         }
+        #endif
     }
 }
 
@@ -381,6 +385,7 @@ struct ChatView: View {
                         Text(otherBloodType).font(.caption2).foregroundStyle(Color.red)
                     }
                 }
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showCallConfirm = true
@@ -395,6 +400,22 @@ struct ChatView: View {
                         .foregroundStyle(Color.blue)
                         .labelStyle(.titleAndIcon)
                 }
+                #elseif os(macOS)
+                ToolbarItem(placement: .automatic) {
+                    Button {
+                        showCallConfirm = true
+                    } label: {
+                        Image(systemName: "phone.fill")
+                            .foregroundStyle(Color.green)
+                    }
+                }
+                ToolbarItem(placement: .automatic) {
+                    Label("Anonymous", systemImage: "lock.shield.fill")
+                        .font(.caption2)
+                        .foregroundStyle(Color.blue)
+                        .labelStyle(.titleAndIcon)
+                }
+                #endif
             }
 
             // Attach menu
@@ -515,6 +536,7 @@ struct MessageBubble: View {
                         .clipShape(BubbleShape(isSender: message.isSender))
 
                 case .image(let data):
+                    #if os(iOS)
                     if let uiImage = UIImage(data: data) {
                         Image(uiImage: uiImage)
                             .resizable()
@@ -523,6 +545,16 @@ struct MessageBubble: View {
                             .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
+                    #elseif os(macOS)
+                    if let nsImage = NSImage(data: data) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 200, height: 160)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    #endif
 
                 case .pdf:
                     HStack(spacing: 10) {
@@ -651,12 +683,21 @@ struct ConversationListView: View {
             .listStyle(.plain)
             .navigationTitle("Messages")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Label("End-to-end encrypted", systemImage: "lock.shield.fill")
                         .font(.caption2)
                         .foregroundStyle(Color.blue)
                         .labelStyle(.titleAndIcon)
                 }
+                #elseif os(macOS)
+                ToolbarItem(placement: .automatic) {
+                    Label("End-to-end encrypted", systemImage: "lock.shield.fill")
+                        .font(.caption2)
+                        .foregroundStyle(Color.blue)
+                        .labelStyle(.titleAndIcon)
+                }
+                #endif
             }
         }
     }
