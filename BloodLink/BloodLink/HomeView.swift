@@ -20,22 +20,17 @@ struct BloodRequest: Identifiable {
 // MARK: - Home view (tab container)
 struct HomeView: View {
 
-    @EnvironmentObject var themeManager: ThemeManager
-
-    // Donor state
     @State private var isOnline = false
     @State private var isLocked = false
     @State private var daysUntilEligible = 0
     @State private var showGoOnlineConfirm = false
 
-    // Stats
     @State private var totalDonations = 3
     @State private var livesSaved = 3
     @State private var nextEligibleDate = Calendar.current.date(
         byAdding: .day, value: 14, to: Date()
     ) ?? Date()
 
-    // Map
     @State private var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 23.8103, longitude: 90.4125),
@@ -43,7 +38,6 @@ struct HomeView: View {
         )
     )
 
-    // Dummy nearby requests
     let nearbyRequests: [BloodRequest] = [
         BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8150, longitude: 90.4100), bloodType: "A+",  seekerName: "Rahim",  distance: "0.8 km"),
         BloodRequest(coordinate: CLLocationCoordinate2D(latitude: 23.8080, longitude: 90.4200), bloodType: "O-",  seekerName: "Karim",  distance: "1.2 km"),
@@ -52,7 +46,6 @@ struct HomeView: View {
     ]
 
     @State private var pulse = false
-    @State private var unreadNotifications = 3
 
     var formattedNextEligible: String {
         let f = DateFormatter()
@@ -73,35 +66,28 @@ struct HomeView: View {
     // MARK: - Body
     var body: some View {
         TabView {
-
-            // MARK: Donate tab
             donorTab
                 .tabItem {
                     Label("Donate", systemImage: "drop.fill")
                 }
 
-            // MARK: Find Blood tab
             SeekerView()
                 .tabItem {
                     Label("Find Blood", systemImage: "magnifyingglass")
                 }
 
-            // MARK: Messages tab
+            NotificationView()
+                .tabItem {
+                    Label("Alerts", systemImage: "bell.fill")
+                }
+                .badge(3)
+
             ConversationListView()
                 .tabItem {
                     Label("Messages", systemImage: "message.fill")
                 }
 
-            // MARK: Alerts tab
-            NotificationView()
-                .tabItem {
-                    Label("Alerts", systemImage: "bell.fill")
-                }
-                .badge(unreadNotifications > 0 ? unreadNotifications : 0)
-
-            // MARK: Profile tab
             ProfileView()
-                .environmentObject(themeManager)
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
@@ -114,7 +100,6 @@ struct HomeView: View {
         NavigationStack {
             ZStack(alignment: .bottom) {
 
-                // Full screen map
                 Map(position: $cameraPosition) {
                     ForEach(nearbyRequests) { request in
                         Annotation(request.bloodType, coordinate: request.coordinate) {
@@ -124,10 +109,8 @@ struct HomeView: View {
                 }
                 .ignoresSafeArea(edges: .top)
 
-                // Bottom sheet
                 VStack(spacing: 0) {
 
-                    // Drag handle
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color.gray.opacity(0.4))
                         .frame(width: 40, height: 5)
@@ -137,7 +120,6 @@ struct HomeView: View {
                     ScrollView {
                         VStack(spacing: 20) {
 
-                            // MARK: Online/offline button
                             VStack(spacing: 8) {
                                 ZStack {
                                     if isOnline {
@@ -220,7 +202,6 @@ struct HomeView: View {
                                     .foregroundStyle(Color.gray)
                             }
 
-                            // MARK: Stats cards
                             HStack(spacing: 12) {
                                 StatCard(
                                     icon: "drop.fill",
@@ -243,7 +224,6 @@ struct HomeView: View {
                             }
                             .padding(.horizontal, 16)
 
-                            // MARK: Nearby requests list
                             VStack(alignment: .leading, spacing: 12) {
                                 HStack {
                                     Text("Nearby requests")
@@ -276,18 +256,6 @@ struct HomeView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            .toolbar {
-                #if os(iOS)
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                    } label: {
-                        Image(systemName: "person.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(Color.red)
-                    }
-                }
-                #endif
-            }
             .confirmationDialog(
                 "Go online as donor?",
                 isPresented: $showGoOnlineConfirm,
@@ -333,7 +301,7 @@ struct BloodRequestPin: View {
     }
 }
 
-// MARK: - Triangle shape for pin tail
+// MARK: - Triangle shape
 struct Triangle: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()

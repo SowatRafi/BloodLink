@@ -73,7 +73,6 @@ struct NotificationView: View {
 
     @State private var notifications: [BloodLinkNotification] = [
 
-        // Today
         BloodLinkNotification(
             type: .bloodRequest,
             title: "Urgent: A+ blood needed",
@@ -98,8 +97,6 @@ struct NotificationView: View {
             isRead: false,
             actionLabel: "Go online"
         ),
-
-        // Yesterday
         BloodLinkNotification(
             type: .bloodRequest,
             title: "B+ blood needed nearby",
@@ -123,8 +120,6 @@ struct NotificationView: View {
             isRead: true,
             actionLabel: "Reply"
         ),
-
-        // Earlier
         BloodLinkNotification(
             type: .donationReminder,
             title: "Donation reminder",
@@ -161,7 +156,6 @@ struct NotificationView: View {
         notifications.filter { !$0.isRead }.count
     }
 
-    // MARK: Grouped notifications
     var todayNotifications: [BloodLinkNotification] {
         notifications.filter { Calendar.current.isDateInToday($0.date) }
     }
@@ -215,6 +209,30 @@ struct NotificationView: View {
                         }
                     }
                 }
+                #else
+                ToolbarItem(placement: .automatic) {
+                    if unreadCount > 0 {
+                        Button("Mark all read") {
+                            withAnimation {
+                                for i in notifications.indices {
+                                    notifications[i].isRead = true
+                                }
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(Color.blue)
+                    }
+                }
+                ToolbarItem(placement: .automatic) {
+                    if !notifications.isEmpty {
+                        Button {
+                            showClearConfirm = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(Color.red)
+                        }
+                    }
+                }
                 #endif
             }
             .confirmationDialog(
@@ -232,7 +250,7 @@ struct NotificationView: View {
         }
     }
 
-    // MARK: - Notification list
+    // MARK: - List
     var notificationList: some View {
         List {
             if !todayNotifications.isEmpty {
@@ -360,7 +378,6 @@ struct NotificationRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
 
-            // Icon
             ZStack {
                 Circle()
                     .fill(notification.type.color.opacity(0.12))
@@ -368,17 +385,15 @@ struct NotificationRow: View {
                 Image(systemName: notification.type.icon)
                     .font(.system(size: 16))
                     .foregroundStyle(notification.type.color)
-            }
-            .overlay(
-                // Unread dot
-                notification.isRead ? nil :
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 10, height: 10)
-                    .offset(x: 16, y: -16)
-            )
 
-            // Content
+                if !notification.isRead {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 10, height: 10)
+                        .offset(x: 16, y: -16)
+                }
+            }
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top) {
                     Text(notification.title)
@@ -397,7 +412,6 @@ struct NotificationRow: View {
                     .foregroundStyle(Color.gray)
                     .lineLimit(2)
 
-                // Type badge + action
                 HStack(spacing: 8) {
                     Text(notification.type.label)
                         .font(.caption2.weight(.semibold))
