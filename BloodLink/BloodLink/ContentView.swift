@@ -33,8 +33,8 @@ struct ContentView: View {
     @State private var isRegistered = false
     @State private var signedInWith: String = ""
 
-    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = true
-    @State private var showSplash = true
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @State private var showSplash = false
 
     var body: some View {
         ZStack {
@@ -86,7 +86,6 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            // Small delay so the root view is fully loaded first
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 if !hasSeenOnboarding {
                     showSplash = true
@@ -151,7 +150,6 @@ struct LoginView: View {
 
             Spacer()
 
-            // Logo
             VStack(spacing: 16) {
                 ZStack {
                     Circle()
@@ -181,7 +179,7 @@ struct LoginView: View {
                     .foregroundStyle(Color.gray)
                     .kerning(0.8)
 
-                // Apple button
+                // Apple
                 Button {
                     onLogin("Apple")
                 } label: {
@@ -204,7 +202,7 @@ struct LoginView: View {
                 }
                 .buttonStyle(.plain)
 
-                // Google button
+                // Google
                 Button {
                     onLogin("Google")
                 } label: {
@@ -263,20 +261,18 @@ struct RegistrationView: View {
     let onSignOut: () -> Void
     let onComplete: () -> Void
 
-    // Personal details
     @State private var passportName = ""
     @State private var dateOfBirth = Date()
     @State private var bloodGroup = "A+"
     @State private var sex = "Male"
     @State private var showDatePicker = false
     @State private var showAgeError = false
+    @State private var showIDUpload = false
 
-    // Height & weight
     @State private var heightCm: Double = 170
     @State private var weightKg: Double = 70
     @State private var heightUnit = "cm"
 
-    // Last donation
     @State private var hasDonateBefore = false
     @State private var lastDonationDate = Date()
     @State private var showLastDonationPicker = false
@@ -382,7 +378,6 @@ struct RegistrationView: View {
                             .foregroundStyle(signedInWith == "Apple"
                                              ? Color.primary
                                              : Color.blue)
-
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Signed in with \(signedInWith)")
                                 .font(.subheadline.weight(.semibold))
@@ -390,23 +385,18 @@ struct RegistrationView: View {
                                 .font(.caption)
                                 .foregroundStyle(Color.gray)
                         }
-
                         Spacer()
-
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundStyle(Color.green)
                     }
                     .padding(.vertical, 4)
 
-                    Button("Sign out") {
-                        onSignOut()
-                    }
-                    .foregroundStyle(Color.red)
+                    Button("Sign out") { onSignOut() }
+                        .foregroundStyle(Color.red)
                 }
 
                 // MARK: Personal details
                 Section("Personal details") {
-
                     VStack(alignment: .leading, spacing: 4) {
                         TextField("Full name as per passport", text: $passportName)
                             .autocorrectionDisabled()
@@ -464,7 +454,6 @@ struct RegistrationView: View {
 
                 // MARK: Body measurements
                 Section("Body measurements") {
-
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("Height")
@@ -480,12 +469,8 @@ struct RegistrationView: View {
                                     .fontWeight(heightUnit == unit ? .semibold : .regular)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
-                                    .background(heightUnit == unit
-                                                ? Color.blue
-                                                : Color.clear)
-                                    .foregroundStyle(heightUnit == unit
-                                                     ? Color.white
-                                                     : Color.blue)
+                                    .background(heightUnit == unit ? Color.blue : Color.clear)
+                                    .foregroundStyle(heightUnit == unit ? Color.white : Color.blue)
                                     .clipShape(Capsule())
                                 }
                             }
@@ -498,8 +483,7 @@ struct RegistrationView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                             .contentTransition(.numericText())
 
-                        Slider(value: $heightCm, in: 50...250, step: 1)
-                            .tint(.blue)
+                        Slider(value: $heightCm, in: 50...250, step: 1).tint(.blue)
 
                         Text(heightFullBreakdown)
                             .font(.caption)
@@ -516,8 +500,7 @@ struct RegistrationView: View {
                                 .foregroundStyle(Color.gray)
                                 .font(.subheadline)
                         }
-                        Slider(value: $weightKg, in: 20...250, step: 1)
-                            .tint(.blue)
+                        Slider(value: $weightKg, in: 20...250, step: 1).tint(.blue)
                     }
                     .padding(.vertical, 4)
                 }
@@ -569,9 +552,7 @@ struct RegistrationView: View {
 
                         HStack {
                             ForEach(["10", "18.5", "25", "30", "40+"], id: \.self) { label in
-                                Text(label)
-                                    .font(.caption2)
-                                    .foregroundStyle(Color.gray)
+                                Text(label).font(.caption2).foregroundStyle(Color.gray)
                                 if label != "40+" { Spacer() }
                             }
                         }
@@ -581,18 +562,13 @@ struct RegistrationView: View {
 
                 // MARK: Donation history
                 Section("Donation history") {
-
                     Toggle("I have donated blood before", isOn: $hasDonateBefore.animation())
 
                     if hasDonateBefore {
-
-                        Toggle(
-                            "I don't know the exact date",
-                            isOn: $lastDonationUnknown.animation()
-                        )
-                        .onChange(of: lastDonationUnknown) {
-                            if lastDonationUnknown { showLastDonationPicker = false }
-                        }
+                        Toggle("I don't know the exact date", isOn: $lastDonationUnknown.animation())
+                            .onChange(of: lastDonationUnknown) {
+                                if lastDonationUnknown { showLastDonationPicker = false }
+                            }
 
                         if !lastDonationUnknown {
                             HStack {
@@ -628,18 +604,13 @@ struct RegistrationView: View {
                                 .font(.caption)
                                 .foregroundStyle(Color.orange)
                             } else if let days = daysSinceLastDonation {
-                                Label(
-                                    "\(days) days since last donation",
-                                    systemImage: "drop.fill"
-                                )
-                                .font(.caption)
-                                .foregroundStyle(Color.red)
+                                Label("\(days) days since last donation", systemImage: "drop.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.red)
                                 if let next = nextEligibleDateString {
                                     Label(
                                         next,
-                                        systemImage: days >= 90
-                                        ? "checkmark.circle.fill"
-                                        : "clock"
+                                        systemImage: days >= 90 ? "checkmark.circle.fill" : "clock"
                                     )
                                     .font(.caption)
                                     .foregroundStyle(days >= 90 ? Color.green : Color.gray)
@@ -667,11 +638,17 @@ struct RegistrationView: View {
                     Button("Complete registration") {
                         showAgeError = ageYears < 18
                         if ageYears >= 18 {
-                            onComplete()
+                            showIDUpload = true
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .disabled(passportName.isEmpty)
+                }
+                .sheet(isPresented: $showIDUpload) {
+                    IDUploadView(onComplete: {
+                        showIDUpload = false
+                        onComplete()
+                    })
                 }
             }
             .navigationTitle("Donor registration")

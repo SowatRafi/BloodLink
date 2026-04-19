@@ -8,6 +8,32 @@
 import SwiftUI
 import PhotosUI
 
+// MARK: - Avatar image helper
+struct AvatarImageView: View {
+    let data: Data
+    let size: CGFloat
+
+    var body: some View {
+        #if canImport(UIKit)
+        if let uiImg = UIImage(data: data) {
+            Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        }
+        #elseif canImport(AppKit)
+        if let nsImg = NSImage(data: data) {
+            Image(nsImage: nsImg)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+        }
+        #endif
+    }
+}
+
 // MARK: - Badge tier
 enum DonorBadge: String {
     case bronze   = "Bronze"
@@ -71,33 +97,6 @@ struct DonationRecord: Identifiable {
     let reportName: String?
 }
 
-// MARK: - Avatar image helper
-// Converts Data to SwiftUI Image without needing UIKit import
-struct AvatarImageView: View {
-    let data: Data
-    let size: CGFloat
-
-    var body: some View {
-        #if canImport(UIKit)
-        if let uiImg = UIImage(data: data) {
-            Image(uiImage: uiImg)
-                .resizable()
-                .scaledToFill()
-                .frame(width: size, height: size)
-                .clipShape(Circle())
-        }
-        #elseif canImport(AppKit)
-        if let nsImg = NSImage(data: data) {
-            Image(nsImage: nsImg)
-                .resizable()
-                .scaledToFill()
-                .frame(width: size, height: size)
-                .clipShape(Circle())
-        }
-        #endif
-    }
-}
-
 // MARK: - Profile view
 struct ProfileView: View {
 
@@ -111,9 +110,10 @@ struct ProfileView: View {
     ) ?? Date()
     @State private var heightCm: Double = 175
     @State private var weightKg: Double = 72
-    @State private var address = " Tangail, Bangladesh"
+    @State private var address = "Dhaka, Bangladesh"
     @State private var isEditing = false
     @State private var showDatePicker = false
+    @State private var showIDUpload = false
 
     @State private var avatarItem: PhotosPickerItem? = nil
     @State private var avatarData: Data? = nil
@@ -164,8 +164,7 @@ struct ProfileView: View {
     }
 
     var formattedDOB: String {
-        let f = DateFormatter()
-        f.dateStyle = .long
+        let f = DateFormatter(); f.dateStyle = .long
         return f.string(from: dateOfBirth)
     }
 
@@ -202,8 +201,7 @@ struct ProfileView: View {
     var isEligible: Bool { nextEligibleDate <= Date() }
 
     var formattedNextEligible: String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
+        let f = DateFormatter(); f.dateStyle = .medium
         return f.string(from: nextEligibleDate)
     }
 
@@ -215,7 +213,6 @@ struct ProfileView: View {
                 // MARK: Avatar + name header
                 Section {
                     HStack(spacing: 16) {
-
                         PhotosPicker(selection: $avatarItem, matching: .images) {
                             ZStack {
                                 Circle()
@@ -250,14 +247,10 @@ struct ProfileView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(passportName)
-                                .font(.title3.weight(.bold))
+                            Text(passportName).font(.title3.weight(.bold))
                             Text(bloodGroup + " · " + sex)
-                                .font(.subheadline)
-                                .foregroundStyle(Color.red)
-                            Text(ageString)
-                                .font(.caption)
-                                .foregroundStyle(Color.gray)
+                                .font(.subheadline).foregroundStyle(Color.red)
+                            Text(ageString).font(.caption).foregroundStyle(Color.gray)
                         }
 
                         Spacer()
@@ -267,8 +260,7 @@ struct ProfileView: View {
                                 .fill(isOnline ? Color.green : Color.gray)
                                 .frame(width: 12, height: 12)
                             Text(isOnline ? "Online" : "Offline")
-                                .font(.caption2)
-                                .foregroundStyle(Color.gray)
+                                .font(.caption2).foregroundStyle(Color.gray)
                         }
                     }
                     .padding(.vertical, 6)
@@ -277,7 +269,6 @@ struct ProfileView: View {
                 // MARK: Donation badge
                 Section {
                     VStack(spacing: 14) {
-
                         HStack(spacing: 16) {
                             ZStack {
                                 Circle()
@@ -293,12 +284,10 @@ struct ProfileView: View {
                                     Text(badge.rawValue)
                                         .font(.title3.weight(.bold))
                                         .foregroundStyle(badge.color)
-                                    Text("Donor")
-                                        .font(.title3.weight(.bold))
+                                    Text("Donor").font(.title3.weight(.bold))
                                 }
                                 Text(badge.description)
-                                    .font(.caption)
-                                    .foregroundStyle(Color.gray)
+                                    .font(.caption).foregroundStyle(Color.gray)
                             }
 
                             Spacer()
@@ -307,19 +296,15 @@ struct ProfileView: View {
                                 Text("\(donationCount)")
                                     .font(.system(size: 24, weight: .bold, design: .rounded))
                                     .foregroundStyle(Color.red)
-                                Text("donations")
-                                    .font(.caption2)
-                                    .foregroundStyle(Color.gray)
+                                Text("donations").font(.caption2).foregroundStyle(Color.gray)
                             }
                         }
 
-                        // Progress to next tier
                         if badge != .platinum {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Text("Progress to \(nextBadge(badge).rawValue)")
-                                        .font(.caption)
-                                        .foregroundStyle(Color.gray)
+                                        .font(.caption).foregroundStyle(Color.gray)
                                     Spacer()
                                     Text("\(donationCount) / \(badge.nextMilestone)")
                                         .font(.caption.weight(.semibold))
@@ -334,8 +319,7 @@ struct ProfileView: View {
                                             .fill(badge.color)
                                             .frame(
                                                 width: geo.size.width * min(
-                                                    Double(donationCount) / Double(badge.nextMilestone),
-                                                    1.0
+                                                    Double(donationCount) / Double(badge.nextMilestone), 1.0
                                                 ),
                                                 height: 8
                                             )
@@ -344,19 +328,12 @@ struct ProfileView: View {
                                 .frame(height: 8)
                             }
                         } else {
-                            Label(
-                                "You have reached the highest tier!",
-                                systemImage: "crown.fill"
-                            )
-                            .font(.caption)
-                            .foregroundStyle(badge.color)
+                            Label("You have reached the highest tier!", systemImage: "crown.fill")
+                                .font(.caption).foregroundStyle(badge.color)
                         }
 
-                        // Eligibility pill
                         HStack(spacing: 8) {
-                            Image(systemName: isEligible
-                                  ? "checkmark.circle.fill"
-                                  : "clock.fill")
+                            Image(systemName: isEligible ? "checkmark.circle.fill" : "clock.fill")
                                 .foregroundStyle(isEligible ? Color.green : Color.orange)
                             Text(isEligible
                                  ? "Eligible to donate now"
@@ -366,9 +343,7 @@ struct ProfileView: View {
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(
-                            (isEligible ? Color.green : Color.orange).opacity(0.1)
-                        )
+                        .background((isEligible ? Color.green : Color.orange).opacity(0.1))
                         .clipShape(Capsule())
                         .frame(maxWidth: .infinity)
                     }
@@ -377,16 +352,15 @@ struct ProfileView: View {
 
                 // MARK: Personal details
                 Section("Personal details") {
-
                     if isEditing {
-
                         VStack(alignment: .leading, spacing: 4) {
                             TextField("Full name as per passport", text: $passportName)
                                 .autocorrectionDisabled()
+                                #if os(iOS)
                                 .textInputAutocapitalization(.words)
+                                #endif
                             Text("As it appears on your passport or government ID.")
-                                .font(.caption)
-                                .foregroundStyle(Color.gray)
+                                .font(.caption).foregroundStyle(Color.gray)
                         }
 
                         Picker("Sex", selection: $sex) {
@@ -440,21 +414,17 @@ struct ProfileView: View {
                             HStack {
                                 Text("Height")
                                 Spacer()
-                                Text("\(Int(heightCm)) cm")
-                                    .foregroundStyle(Color.gray)
+                                Text("\(Int(heightCm)) cm").foregroundStyle(Color.gray)
                             }
-                            Slider(value: $heightCm, in: 50...250, step: 1)
-                                .tint(.blue)
+                            Slider(value: $heightCm, in: 50...250, step: 1).tint(.blue)
                         }
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Text("Weight")
                                 Spacer()
-                                Text("\(Int(weightKg)) kg")
-                                    .foregroundStyle(Color.gray)
+                                Text("\(Int(weightKg)) kg").foregroundStyle(Color.gray)
                             }
-                            Slider(value: $weightKg, in: 20...250, step: 1)
-                                .tint(.blue)
+                            Slider(value: $weightKg, in: 20...250, step: 1).tint(.blue)
                         }
                     } else {
                         ProfileRow(label: "Height", value: "\(Int(heightCm)) cm")
@@ -465,28 +435,47 @@ struct ProfileView: View {
                         Text("BMI")
                         Spacer()
                         Text(String(format: "%.1f", bmi))
-                            .fontWeight(.semibold)
-                            .foregroundStyle(bmiColor)
-                        Text("·")
-                            .foregroundStyle(Color.gray)
-                        Text(bmiLabel)
-                            .font(.subheadline)
-                            .foregroundStyle(bmiColor)
+                            .fontWeight(.semibold).foregroundStyle(bmiColor)
+                        Text("·").foregroundStyle(Color.gray)
+                        Text(bmiLabel).font(.subheadline).foregroundStyle(bmiColor)
                     }
+                }
+
+                // MARK: Identity verification
+                Section("Identity verification") {
+                    Button {
+                        showIDUpload = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "creditcard.fill")
+                                .foregroundStyle(Color.blue)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("ID documents")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.primary)
+                                Text("Update your passport or national ID")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(Color.green)
+                                .font(.caption)
+                        }
+                    }
+                }
+                .sheet(isPresented: $showIDUpload) {
+                    IDUploadView(isEditMode: true)
                 }
 
                 // MARK: Donation timeline
                 Section("Donation history") {
                     if donations.isEmpty {
                         Text("No donations recorded yet.")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.gray)
+                            .font(.subheadline).foregroundStyle(Color.gray)
                             .padding(.vertical, 8)
                     } else {
-                        ForEach(
-                            Array(donations.enumerated()),
-                            id: \.element.id
-                        ) { index, donation in
+                        ForEach(Array(donations.enumerated()), id: \.element.id) { index, donation in
                             DonationTimelineRow(
                                 donation: donation,
                                 isLast: index == donations.count - 1
@@ -497,15 +486,16 @@ struct ProfileView: View {
 
                 // MARK: Danger zone
                 Section {
-                    Button("Sign out") {}
-                        .foregroundStyle(Color.red)
-                    Button("Delete account") {}
-                        .foregroundStyle(Color.red)
+                    Button("Sign out") {}.foregroundStyle(Color.red)
+                    Button("Delete account") {}.foregroundStyle(Color.red)
                 }
             }
             .navigationTitle("My Profile")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(isEditing ? "Save" : "Edit") {
                         withAnimation { isEditing.toggle() }
@@ -515,13 +505,29 @@ struct ProfileView: View {
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(
-                        destination: SettingsView()
-                            .environmentObject(themeManager)
+                        destination: SettingsView().environmentObject(themeManager)
                     ) {
                         Image(systemName: "gearshape.fill")
                             .foregroundStyle(Color.gray)
                     }
                 }
+                #else
+                ToolbarItem(placement: .automatic) {
+                    Button(isEditing ? "Save" : "Edit") {
+                        withAnimation { isEditing.toggle() }
+                    }
+                    .fontWeight(isEditing ? .bold : .regular)
+                    .foregroundStyle(isEditing ? Color.green : Color.blue)
+                }
+                ToolbarItem(placement: .automatic) {
+                    NavigationLink(
+                        destination: SettingsView().environmentObject(themeManager)
+                    ) {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundStyle(Color.gray)
+                    }
+                }
+                #endif
             }
         }
     }
@@ -543,12 +549,9 @@ struct ProfileRow: View {
 
     var body: some View {
         HStack {
-            Text(label)
-                .foregroundStyle(Color.primary)
+            Text(label).foregroundStyle(Color.primary)
             Spacer()
-            Text(value)
-                .foregroundStyle(Color.gray)
-                .multilineTextAlignment(.trailing)
+            Text(value).foregroundStyle(Color.gray).multilineTextAlignment(.trailing)
         }
     }
 }
@@ -559,15 +562,12 @@ struct DonationTimelineRow: View {
     let isLast: Bool
 
     var formattedDate: String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
+        let f = DateFormatter(); f.dateStyle = .medium
         return f.string(from: donation.date)
     }
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-
-            // Timeline dot + line
             VStack(spacing: 0) {
                 Circle()
                     .fill(donation.hasReport ? Color.green : Color.orange)
@@ -583,11 +583,9 @@ struct DonationTimelineRow: View {
             }
             .frame(width: 12)
 
-            // Content
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(formattedDate)
-                        .font(.subheadline.weight(.semibold))
+                    Text(formattedDate).font(.subheadline.weight(.semibold))
                     Spacer()
                     Text(donation.bloodType)
                         .font(.caption.weight(.bold))
@@ -598,34 +596,22 @@ struct DonationTimelineRow: View {
                         .clipShape(Capsule())
                 }
 
-                Text(donation.location)
-                    .font(.caption)
-                    .foregroundStyle(Color.gray)
+                Text(donation.location).font(.caption).foregroundStyle(Color.gray)
 
                 if donation.hasReport, let reportName = donation.reportName {
                     HStack(spacing: 6) {
-                        Image(systemName: "doc.fill")
-                            .font(.caption)
-                            .foregroundStyle(Color.blue)
-                        Text(reportName)
-                            .font(.caption)
-                            .foregroundStyle(Color.blue)
+                        Image(systemName: "doc.fill").font(.caption).foregroundStyle(Color.blue)
+                        Text(reportName).font(.caption).foregroundStyle(Color.blue)
                         Spacer()
-                        Image(systemName: "arrow.down.circle")
-                            .font(.caption)
-                            .foregroundStyle(Color.blue)
+                        Image(systemName: "arrow.down.circle").font(.caption).foregroundStyle(Color.blue)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(Color.blue.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 } else {
-                    Label(
-                        "No report uploaded yet",
-                        systemImage: "doc.badge.clock"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(Color.orange)
+                    Label("No report uploaded yet", systemImage: "doc.badge.clock")
+                        .font(.caption).foregroundStyle(Color.orange)
                 }
             }
             .padding(.bottom, isLast ? 0 : 16)
