@@ -57,7 +57,6 @@ struct CallScreenView: View {
     var body: some View {
         ZStack {
 
-            // Background gradient
             LinearGradient(
                 colors: [Color(red: 0.08, green: 0.08, blue: 0.12),
                          Color(red: 0.15, green: 0.05, blue: 0.05)],
@@ -70,10 +69,8 @@ struct CallScreenView: View {
 
                 Spacer()
 
-                // MARK: Caller info
                 VStack(spacing: 16) {
 
-                    // Avatar with pulse
                     ZStack {
                         Circle()
                             .stroke(Color.red.opacity(0.15), lineWidth: 20)
@@ -95,7 +92,6 @@ struct CallScreenView: View {
                     }
                     .onAppear { pulse = true }
 
-                    // Name and blood type
                     VStack(spacing: 6) {
                         Text(otherName)
                             .font(.system(size: 32, weight: .bold))
@@ -105,14 +101,12 @@ struct CallScreenView: View {
                             .font(.subheadline)
                             .foregroundStyle(Color.red.opacity(0.8))
 
-                        // Timer
                         Text(formattedTime)
                             .font(.system(size: 20, weight: .light, design: .monospaced))
                             .foregroundStyle(Color.white.opacity(0.7))
                             .padding(.top, 4)
                     }
 
-                    // Anonymous badge
                     HStack(spacing: 6) {
                         Image(systemName: "lock.shield.fill")
                             .font(.caption)
@@ -128,7 +122,6 @@ struct CallScreenView: View {
 
                 Spacer()
 
-                // MARK: Audio route selector
                 VStack(spacing: 12) {
                     Text("Audio output")
                         .font(.caption)
@@ -168,10 +161,8 @@ struct CallScreenView: View {
                 }
                 .padding(.bottom, 40)
 
-                // MARK: Call controls
                 HStack(spacing: 40) {
 
-                    // Mute
                     Button {
                         withAnimation { isMuted.toggle() }
                     } label: {
@@ -193,7 +184,6 @@ struct CallScreenView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // End call
                     Button {
                         onEnd()
                     } label: {
@@ -214,9 +204,7 @@ struct CallScreenView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Keypad placeholder
                     Button {
-                        // keypad
                     } label: {
                         VStack(spacing: 8) {
                             ZStack {
@@ -293,6 +281,7 @@ struct ChatView: View {
     @State private var showAttachMenu = false
     @State private var showCallConfirm = false
     @State private var showCallScreen = false
+    @State private var showReportUpload = false
     @State private var callTimer = 0
     @State private var callTimerActive = false
 
@@ -418,15 +407,49 @@ struct ChatView: View {
                 #endif
             }
 
-            // Attach menu
+            // Attach menu — now opens blood report upload sheet
             .confirmationDialog("Share", isPresented: $showAttachMenu, titleVisibility: .visible) {
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     Label("Photo", systemImage: "photo")
                 }
-                Button { sendPDFMessage() } label: {
-                    Label("Blood report (PDF)", systemImage: "doc.fill")
+                Button {
+                    showReportUpload = true
+                } label: {
+                    Label("Blood report", systemImage: "doc.text.viewfinder")
                 }
                 Button("Cancel", role: .cancel) {}
+            }
+
+            // Blood report upload sheet
+            .sheet(isPresented: $showReportUpload) {
+                BloodReportUploadView(
+                    donorName: otherName,
+                    donorBloodType: otherBloodType,
+                    onComplete: { uploadType in
+                        switch uploadType {
+                        case .pdf(_, let name):
+                            withAnimation {
+                                messages.append(ChatMessage(
+                                    content: name,
+                                    type: .pdf,
+                                    isSender: true,
+                                    timestamp: Date()
+                                ))
+                            }
+                        case .image(let data):
+                            withAnimation {
+                                messages.append(ChatMessage(
+                                    content: "Blood report",
+                                    type: .image(data),
+                                    isSender: true,
+                                    timestamp: Date()
+                                ))
+                            }
+                        case .none:
+                            break
+                        }
+                    }
+                )
             }
 
             // Call confirm
@@ -482,12 +505,6 @@ struct ChatView: View {
             messages.append(ChatMessage(content: "Photo", type: .image(data), isSender: true, timestamp: Date()))
         }
         selectedPhoto = nil
-    }
-
-    func sendPDFMessage() {
-        withAnimation {
-            messages.append(ChatMessage(content: "Blood_Report.pdf", type: .pdf, isSender: true, timestamp: Date()))
-        }
     }
 
     func startCall() {

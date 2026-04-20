@@ -93,8 +93,9 @@ struct DonationRecord: Identifiable {
     let date: Date
     let location: String
     let bloodType: String
-    let hasReport: Bool
-    let reportName: String?
+    var hasReport: Bool
+    var reportName: String?
+    var recipientName: String = "Anonymous"
 }
 
 // MARK: - Profile view
@@ -114,6 +115,7 @@ struct ProfileView: View {
     @State private var isEditing = false
     @State private var showDatePicker = false
     @State private var showIDUpload = false
+    @State private var selectedDonationForReport: DonationRecord? = nil
 
     @State private var avatarItem: PhotosPickerItem? = nil
     @State private var avatarData: Data? = nil
@@ -127,28 +129,32 @@ struct ProfileView: View {
             location: "Dhaka Medical College",
             bloodType: "A+",
             hasReport: true,
-            reportName: "Report_Jan2025.pdf"
+            reportName: "Report_Jan2025.pdf",
+            recipientName: "Hasan"
         ),
         DonationRecord(
             date: Date().addingTimeInterval(-86400 * 120),
             location: "Square Hospital",
             bloodType: "A+",
             hasReport: true,
-            reportName: "Report_Apr2025.pdf"
+            reportName: "Report_Apr2025.pdf",
+            recipientName: "Farida"
         ),
         DonationRecord(
             date: Date().addingTimeInterval(-86400 * 60),
             location: "City Hospital",
             bloodType: "A+",
             hasReport: false,
-            reportName: nil
+            reportName: nil,
+            recipientName: "Tariq"
         ),
         DonationRecord(
             date: Date().addingTimeInterval(-86400 * 10),
             location: "Popular Diagnostic",
             bloodType: "A+",
             hasReport: true,
-            reportName: "Report_Dec2025.pdf"
+            reportName: "Report_Dec2025.pdf",
+            recipientName: "Nadia"
         ),
     ]
 
@@ -478,10 +484,37 @@ struct ProfileView: View {
                         ForEach(Array(donations.enumerated()), id: \.element.id) { index, donation in
                             DonationTimelineRow(
                                 donation: donation,
-                                isLast: index == donations.count - 1
+                                isLast: index == donations.count - 1,
+                                onUploadReport: {
+                                    selectedDonationForReport = donation
+                                }
                             )
                         }
                     }
+                }
+                .sheet(item: $selectedDonationForReport) { donation in
+                    BloodReportUploadView(
+                        donorName: donation.recipientName,
+                        donorBloodType: donation.bloodType,
+                        donationDate: donation.date,
+                        hospital: donation.location,
+                        onComplete: { uploadType in
+                            // Mark donation as having a report
+                            if let index = donations.firstIndex(where: { $0.id == donation.id }) {
+                                withAnimation {
+                                    donations[index].hasReport = true
+                                    switch uploadType {
+                                    case .pdf(_, let name):
+                                        donations[index].reportName = name
+                                    case .image:
+                                        donations[index].reportName = "Blood_Report.jpg"
+                                    case .none:
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    )
                 }
 
                 // MARK: Danger zone
@@ -560,6 +593,7 @@ struct ProfileRow: View {
 struct DonationTimelineRow: View {
     let donation: DonationRecord
     let isLast: Bool
+    let onUploadReport: () -> Void
 
     var formattedDate: String {
         let f = DateFormatter(); f.dateStyle = .medium
@@ -610,8 +644,27 @@ struct DonationTimelineRow: View {
                     .background(Color.blue.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 } else {
-                    Label("No report uploaded yet", systemImage: "doc.badge.clock")
-                        .font(.caption).foregroundStyle(Color.orange)
+                    Button {
+                        onUploadReport()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.up.doc.fill")
+                                .font(.caption)
+                                .foregroundStyle(Color.orange)
+                            Text("Upload report")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color.orange)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .foregroundStyle(Color.orange.opacity(0.6))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.orange.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.bottom, isLast ? 0 : 16)
