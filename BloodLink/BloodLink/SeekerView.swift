@@ -289,7 +289,14 @@ struct SeekerView: View {
 
                                         // Donor list (name, location, blood type only)
                                         ForEach(matchingDonors) { donor in
-                                            DonorResultRow(donor: donor)
+                                            NavigationLink(destination: NavigationRouteView(
+                                                donorName: donor.name,
+                                                donorBloodType: donor.bloodType,
+                                                donorCoordinate: donor.coordinate
+                                            )) {
+                                                DonorResultRow(donor: donor)
+                                            }
+                                            .buttonStyle(.plain)
                                         }
 
                                         // Notify all button
