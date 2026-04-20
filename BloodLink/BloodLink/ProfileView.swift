@@ -116,6 +116,7 @@ struct ProfileView: View {
     @State private var showDatePicker = false
     @State private var showIDUpload = false
     @State private var selectedDonationForReport: DonationRecord? = nil
+    @State private var selectedDonationDetail: DonationDetail? = nil
 
     @State private var avatarItem: PhotosPickerItem? = nil
     @State private var avatarData: Data? = nil
@@ -482,13 +483,18 @@ struct ProfileView: View {
                             .padding(.vertical, 8)
                     } else {
                         ForEach(Array(donations.enumerated()), id: \.element.id) { index, donation in
-                            DonationTimelineRow(
-                                donation: donation,
-                                isLast: index == donations.count - 1,
-                                onUploadReport: {
-                                    selectedDonationForReport = donation
-                                }
-                            )
+                            Button {
+                                selectedDonationDetail = buildDetail(for: donation)
+                            } label: {
+                                DonationTimelineRow(
+                                    donation: donation,
+                                    isLast: index == donations.count - 1,
+                                    onUploadReport: {
+                                        selectedDonationForReport = donation
+                                    }
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -499,7 +505,6 @@ struct ProfileView: View {
                         donationDate: donation.date,
                         hospital: donation.location,
                         onComplete: { uploadType in
-                            // Mark donation as having a report
                             if let index = donations.firstIndex(where: { $0.id == donation.id }) {
                                 withAnimation {
                                     donations[index].hasReport = true
@@ -515,6 +520,9 @@ struct ProfileView: View {
                             }
                         }
                     )
+                }
+                .sheet(item: $selectedDonationDetail) { detail in
+                    DonationDetailView(detail: detail)
                 }
 
                 // MARK: Danger zone
@@ -572,6 +580,32 @@ struct ProfileView: View {
         case .gold:     return .platinum
         case .platinum: return .platinum
         }
+    }
+
+    // MARK: - Build detail
+    func buildDetail(for donation: DonationRecord) -> DonationDetail {
+        let messages: [String] = [
+            "Thank you so much for your donation. My father is recovering well thanks to your kindness. We are forever grateful to you and BloodLink. May Allah bless you always.",
+            "Your kindness saved my sister's life. She just came home from the hospital yesterday. Thank you from the bottom of our hearts.",
+            "I can never thank you enough. Because of you, my wife made it through surgery. You are an angel sent to us.",
+            "You will always be in our prayers. Thank you for caring about a stranger."
+        ]
+        let statuses: [RecoveryStatus] = [.fullRecovery, .discharged, .stable, .recovering]
+        let notes: [String] = [
+            "Patient fully recovered after 3 weeks. Discharged and back to normal life.",
+            "Released from hospital last week. Returning for follow-up in 2 weeks.",
+            "Vital signs stable. Expected to be discharged soon.",
+            "Still in recovery. Responding well to treatment."
+        ]
+        let index = abs(donation.recipientName.hashValue) % messages.count
+        return DonationDetail(
+            record: donation,
+            thankYouMessage: donation.hasReport ? messages[index] : "",
+            recoveryStatus: statuses[index],
+            recoveryNote: notes[index],
+            unitsDonated: Int.random(in: 1...2),
+            hospital: donation.location
+        )
     }
 }
 
@@ -666,6 +700,16 @@ struct DonationTimelineRow: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                // Tap hint
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.right.circle")
+                        .font(.caption2)
+                    Text("Tap for details")
+                        .font(.caption2)
+                }
+                .foregroundStyle(Color.gray.opacity(0.6))
+                .padding(.top, 2)
             }
             .padding(.bottom, isLast ? 0 : 16)
         }
