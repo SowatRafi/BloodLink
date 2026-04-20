@@ -17,6 +17,15 @@ struct BloodRequest: Identifiable {
     let distance: String
 }
 
+// MARK: - Sheet snap position
+enum SheetPosition: CGFloat {
+    case small  = 0.78   // 22% visible
+    case medium = 0.45   // 55% visible
+    case large  = 0.08   // 92% visible
+
+    static let all: [SheetPosition] = [.small, .medium, .large]
+}
+
 // MARK: - Home view (tab container)
 struct HomeView: View {
 
@@ -46,6 +55,8 @@ struct HomeView: View {
     ]
 
     @State private var pulse = false
+    @State private var sheetPosition: SheetPosition = .medium
+    @State private var dragOffset: CGFloat = 0
 
     var formattedNextEligible: String {
         let f = DateFormatter()
@@ -98,170 +109,54 @@ struct HomeView: View {
     // MARK: - Donor tab
     var donorTab: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            GeometryReader { geo in
+                ZStack(alignment: .top) {
 
-                Map(position: $cameraPosition) {
-                    ForEach(nearbyRequests) { request in
-                        Annotation(request.bloodType, coordinate: request.coordinate) {
-                            BloodRequestPin(bloodType: request.bloodType)
+                    // Map
+                    Map(position: $cameraPosition) {
+                        ForEach(nearbyRequests) { request in
+                            Annotation(request.bloodType, coordinate: request.coordinate) {
+                                BloodRequestPin(bloodType: request.bloodType)
+                            }
                         }
                     }
-                }
-                .ignoresSafeArea(edges: .top)
+                    .ignoresSafeArea(edges: .top)
 
-                // MARK: Floating SOS button (long-press)
-                VStack {
+                    // Floating SOS button
                     HStack {
                         Spacer()
                         SOSFloatingButton()
                             .padding(.top, 60)
                             .padding(.trailing, 16)
                     }
-                    Spacer()
-                }
 
-                VStack(spacing: 0) {
+                    // Draggable bottom sheet
+                    donorSheet
+                        .frame(height: geo.size.height + 100)
+                        .offset(y: max(
+                            geo.size.height * sheetPosition.rawValue + dragOffset,
+                            geo.size.height * SheetPosition.large.rawValue
+                        ))
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    dragOffset = value.translation.height
+                                }
+                                .onEnded { value in
+                                    let currentOffset = geo.size.height * sheetPosition.rawValue + value.translation.height
+                                    let currentFraction = currentOffset / geo.size.height
 
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.gray.opacity(0.4))
-                        .frame(width: 40, height: 5)
-                        .padding(.top, 12)
-                        .padding(.bottom, 8)
+                                    let closest = SheetPosition.all.min(by: {
+                                        abs($0.rawValue - currentFraction) < abs($1.rawValue - currentFraction)
+                                    }) ?? .medium
 
-                    ScrollView {
-                        VStack(spacing: 20) {
-
-                            VStack(spacing: 8) {
-                                ZStack {
-                                    if isOnline {
-                                        Circle()
-                                            .stroke(Color.green.opacity(0.3), lineWidth: 12)
-                                            .frame(
-                                                width: pulse ? 140 : 110,
-                                                height: pulse ? 140 : 110
-                                            )
-                                            .animation(
-                                                .easeInOut(duration: 1.2)
-                                                .repeatForever(autoreverses: true),
-                                                value: pulse
-                                            )
-
-                                        Circle()
-                                            .stroke(Color.green.opacity(0.15), lineWidth: 20)
-                                            .frame(
-                                                width: pulse ? 170 : 130,
-                                                height: pulse ? 170 : 130
-                                            )
-                                            .animation(
-                                                .easeInOut(duration: 1.2)
-                                                .repeatForever(autoreverses: true)
-                                                .delay(0.2),
-                                                value: pulse
-                                            )
+                                    withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.85)) {
+                                        sheetPosition = closest
+                                        dragOffset = 0
                                     }
-
-                                    Button {
-                                        if isLocked { return }
-                                        if isOnline {
-                                            withAnimation { isOnline = false }
-                                        } else {
-                                            showGoOnlineConfirm = true
-                                        }
-                                    } label: {
-                                        ZStack {
-                                            Circle()
-                                                .fill(buttonColor)
-                                                .frame(width: 110, height: 110)
-                                                .shadow(
-                                                    color: buttonColor.opacity(0.4),
-                                                    radius: 12, x: 0, y: 6
-                                                )
-                                            VStack(spacing: 4) {
-                                                Image(systemName: isLocked
-                                                      ? "lock.fill"
-                                                      : (isOnline ? "wifi" : "wifi.slash"))
-                                                    .font(.system(size: 28, weight: .semibold))
-                                                    .foregroundStyle(Color.white)
-                                                Text(buttonLabel)
-                                                    .font(.system(size: 13, weight: .bold))
-                                                    .foregroundStyle(Color.white)
-                                            }
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
                                 }
-                                .frame(height: 180)
-                                .onAppear { pulse = true }
-
-                                if isLocked {
-                                    Label(
-                                        "Eligible to donate again in \(daysUntilEligible) days",
-                                        systemImage: "clock"
-                                    )
-                                    .font(.caption)
-                                    .foregroundStyle(Color.orange)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 6)
-                                    .background(Color.orange.opacity(0.1))
-                                    .clipShape(Capsule())
-                                }
-
-                                Text(isOnline
-                                     ? "You are visible to nearby blood seekers"
-                                     : "You are hidden from seekers")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.gray)
-                            }
-
-                            HStack(spacing: 12) {
-                                StatCard(
-                                    icon: "drop.fill",
-                                    iconColor: .red,
-                                    value: "\(totalDonations)",
-                                    label: "Donations"
-                                )
-                                StatCard(
-                                    icon: "heart.fill",
-                                    iconColor: .pink,
-                                    value: "\(livesSaved)",
-                                    label: "Lives saved"
-                                )
-                                StatCard(
-                                    icon: "calendar.badge.checkmark",
-                                    iconColor: .blue,
-                                    value: formattedNextEligible,
-                                    label: "Next eligible"
-                                )
-                            }
-                            .padding(.horizontal, 16)
-
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Text("Nearby requests")
-                                        .font(.headline)
-                                    Spacer()
-                                    Text("\(nearbyRequests.count) active")
-                                        .font(.caption)
-                                        .foregroundStyle(Color.gray)
-                                }
-                                .padding(.horizontal, 16)
-
-                                ForEach(nearbyRequests) { request in
-                                    NearbyRequestRow(request: request)
-                                }
-                            }
-
-                            Spacer(minLength: 20)
-                        }
-                        .padding(.top, 8)
-                    }
+                        )
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color(uiColor: .systemBackground))
-                        .shadow(color: .black.opacity(0.12), radius: 16, x: 0, y: -4)
-                )
-                .frame(maxHeight: 520)
             }
             .navigationTitle("BloodLink")
             #if os(iOS)
@@ -280,6 +175,154 @@ struct HomeView: View {
                 Text("You will be visible to nearby blood seekers based on your location.")
             }
         }
+    }
+
+    // MARK: - Donor sheet content
+    var donorSheet: some View {
+        VStack(spacing: 0) {
+
+            // Drag handle
+            RoundedRectangle(cornerRadius: 3)
+                .fill(Color.gray.opacity(0.4))
+                .frame(width: 40, height: 5)
+                .padding(.top, 10)
+                .padding(.bottom, 6)
+
+            ScrollView {
+                VStack(spacing: 20) {
+
+                    VStack(spacing: 8) {
+                        ZStack {
+                            if isOnline {
+                                Circle()
+                                    .stroke(Color.green.opacity(0.3), lineWidth: 12)
+                                    .frame(
+                                        width: pulse ? 140 : 110,
+                                        height: pulse ? 140 : 110
+                                    )
+                                    .animation(
+                                        .easeInOut(duration: 1.2)
+                                        .repeatForever(autoreverses: true),
+                                        value: pulse
+                                    )
+
+                                Circle()
+                                    .stroke(Color.green.opacity(0.15), lineWidth: 20)
+                                    .frame(
+                                        width: pulse ? 170 : 130,
+                                        height: pulse ? 170 : 130
+                                    )
+                                    .animation(
+                                        .easeInOut(duration: 1.2)
+                                        .repeatForever(autoreverses: true)
+                                        .delay(0.2),
+                                        value: pulse
+                                    )
+                            }
+
+                            Button {
+                                if isLocked { return }
+                                if isOnline {
+                                    withAnimation { isOnline = false }
+                                } else {
+                                    showGoOnlineConfirm = true
+                                }
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .fill(buttonColor)
+                                        .frame(width: 110, height: 110)
+                                        .shadow(
+                                            color: buttonColor.opacity(0.4),
+                                            radius: 12, x: 0, y: 6
+                                        )
+                                    VStack(spacing: 4) {
+                                        Image(systemName: isLocked
+                                              ? "lock.fill"
+                                              : (isOnline ? "wifi" : "wifi.slash"))
+                                            .font(.system(size: 28, weight: .semibold))
+                                            .foregroundStyle(Color.white)
+                                        Text(buttonLabel)
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundStyle(Color.white)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .frame(height: 180)
+                        .onAppear { pulse = true }
+
+                        if isLocked {
+                            Label(
+                                "Eligible to donate again in \(daysUntilEligible) days",
+                                systemImage: "clock"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(Color.orange)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                            .background(Color.orange.opacity(0.1))
+                            .clipShape(Capsule())
+                        }
+
+                        Text(isOnline
+                             ? "You are visible to nearby blood seekers"
+                             : "You are hidden from seekers")
+                            .font(.caption)
+                            .foregroundStyle(Color.gray)
+                    }
+                    .padding(.top, 6)
+
+                    HStack(spacing: 12) {
+                        StatCard(
+                            icon: "drop.fill",
+                            iconColor: .red,
+                            value: "\(totalDonations)",
+                            label: "Donations"
+                        )
+                        StatCard(
+                            icon: "heart.fill",
+                            iconColor: .pink,
+                            value: "\(livesSaved)",
+                            label: "Lives saved"
+                        )
+                        StatCard(
+                            icon: "calendar.badge.checkmark",
+                            iconColor: .blue,
+                            value: formattedNextEligible,
+                            label: "Next eligible"
+                        )
+                    }
+                    .padding(.horizontal, 16)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Nearby requests")
+                                .font(.headline)
+                            Spacer()
+                            Text("\(nearbyRequests.count) active")
+                                .font(.caption)
+                                .foregroundStyle(Color.gray)
+                        }
+                        .padding(.horizontal, 16)
+
+                        ForEach(nearbyRequests) { request in
+                            NearbyRequestRow(request: request)
+                        }
+                    }
+
+                    Spacer(minLength: 100)
+                }
+            }
+            .scrollDisabled(sheetPosition != .large)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(uiColor: .systemBackground))
+                .shadow(color: .black.opacity(0.15), radius: 16, x: 0, y: -4)
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 }
 
@@ -301,7 +344,7 @@ struct SOSFloatingButton: View {
                     value: pulse
                 )
 
-            // Progress ring while long pressing
+            // Progress ring
             Circle()
                 .trim(from: 0, to: pressProgress)
                 .stroke(
