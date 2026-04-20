@@ -109,6 +109,17 @@ struct HomeView: View {
                 }
                 .ignoresSafeArea(edges: .top)
 
+                // MARK: Floating SOS button (long-press)
+                VStack {
+                    HStack {
+                        Spacer()
+                        SOSFloatingButton()
+                            .padding(.top, 60)
+                            .padding(.trailing, 16)
+                    }
+                    Spacer()
+                }
+
                 VStack(spacing: 0) {
 
                     RoundedRectangle(cornerRadius: 3)
@@ -268,6 +279,78 @@ struct HomeView: View {
             } message: {
                 Text("You will be visible to nearby blood seekers based on your location.")
             }
+        }
+    }
+}
+
+// MARK: - Floating SOS button
+struct SOSFloatingButton: View {
+    @State private var showSOS = false
+    @State private var pressProgress: Double = 0
+    @State private var isLongPressing = false
+    @State private var pulse = false
+
+    var body: some View {
+        ZStack {
+            // Pulsing ring
+            Circle()
+                .stroke(Color.red.opacity(0.3), lineWidth: 8)
+                .frame(width: pulse ? 80 : 66, height: pulse ? 80 : 66)
+                .animation(
+                    .easeInOut(duration: 1.4).repeatForever(autoreverses: true),
+                    value: pulse
+                )
+
+            // Progress ring while long pressing
+            Circle()
+                .trim(from: 0, to: pressProgress)
+                .stroke(
+                    Color.white,
+                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                )
+                .frame(width: 62, height: 62)
+                .rotationEffect(.degrees(-90))
+
+            // Button
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.red, Color(red: 0.7, green: 0.1, blue: 0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 56, height: 56)
+                .shadow(color: .red.opacity(0.5), radius: 10, x: 0, y: 4)
+                .overlay(
+                    Image(systemName: "sos")
+                        .font(.system(size: 18, weight: .heavy))
+                        .foregroundStyle(Color.white)
+                )
+                .scaleEffect(isLongPressing ? 1.15 : 1)
+                .animation(.easeInOut(duration: 0.2), value: isLongPressing)
+        }
+        .onAppear { pulse = true }
+        .onLongPressGesture(
+            minimumDuration: 1.2,
+            maximumDistance: 50,
+            perform: {
+                showSOS = true
+                withAnimation { pressProgress = 0 }
+            },
+            onPressingChanged: { pressing in
+                isLongPressing = pressing
+                if pressing {
+                    withAnimation(.linear(duration: 1.2)) {
+                        pressProgress = 1
+                    }
+                } else {
+                    withAnimation { pressProgress = 0 }
+                }
+            }
+        )
+        .sheet(isPresented: $showSOS) {
+            EmergencySOSView()
         }
     }
 }
