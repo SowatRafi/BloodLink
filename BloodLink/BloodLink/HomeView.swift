@@ -19,9 +19,9 @@ struct BloodRequest: Identifiable {
 
 // MARK: - Sheet snap position
 enum SheetPosition: CGFloat {
-    case small  = 0.78   // 22% visible
-    case medium = 0.45   // 55% visible
-    case large  = 0.08   // 92% visible
+    case small  = 0.78
+    case medium = 0.45
+    case large  = 0.08
 
     static let all: [SheetPosition] = [.small, .medium, .large]
 }
@@ -132,7 +132,7 @@ struct HomeView: View {
 
                     // Draggable bottom sheet
                     donorSheet
-                        .frame(height: geo.size.height + 100)
+                        .frame(height: geo.size.height)
                         .offset(y: max(
                             geo.size.height * sheetPosition.rawValue + dragOffset,
                             geo.size.height * SheetPosition.large.rawValue
@@ -312,7 +312,7 @@ struct HomeView: View {
                         }
                     }
 
-                    Spacer(minLength: 100)
+                    Spacer(minLength: 40)
                 }
             }
             .scrollDisabled(sheetPosition != .large)
@@ -321,7 +321,6 @@ struct HomeView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color(uiColor: .systemBackground))
                 .shadow(color: .black.opacity(0.15), radius: 16, x: 0, y: -4)
-                .ignoresSafeArea(edges: .bottom)
         )
     }
 }
@@ -335,7 +334,6 @@ struct SOSFloatingButton: View {
 
     var body: some View {
         ZStack {
-            // Pulsing ring
             Circle()
                 .stroke(Color.red.opacity(0.3), lineWidth: 8)
                 .frame(width: pulse ? 80 : 66, height: pulse ? 80 : 66)
@@ -344,7 +342,6 @@ struct SOSFloatingButton: View {
                     value: pulse
                 )
 
-            // Progress ring
             Circle()
                 .trim(from: 0, to: pressProgress)
                 .stroke(
@@ -354,7 +351,6 @@ struct SOSFloatingButton: View {
                 .frame(width: 62, height: 62)
                 .rotationEffect(.degrees(-90))
 
-            // Button
             Circle()
                 .fill(
                     LinearGradient(
