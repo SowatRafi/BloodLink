@@ -115,6 +115,7 @@ struct ProfileView: View {
     @State private var isEditing = false
     @State private var showDatePicker = false
     @State private var showIDUpload = false
+    @State private var showRecoveryUpdates = false
     @State private var selectedDonationForReport: DonationRecord? = nil
     @State private var selectedDonationDetail: DonationDetail? = nil
 
@@ -475,6 +476,37 @@ struct ProfileView: View {
                     IDUploadView(isEditMode: true)
                 }
 
+                // MARK: Donations received (recipient side)
+                Section("Donations received") {
+                    Button {
+                        showRecoveryUpdates = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "heart.text.square.fill")
+                                .foregroundStyle(Color.red)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("My recovery journey")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.primary)
+                                Text("Post updates to your donors")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(Color.gray)
+                        }
+                    }
+                }
+                .sheet(isPresented: $showRecoveryUpdates) {
+                    RecoveryUpdateView(
+                        donorName: "Sowad Hossain Rafi",
+                        donationDate: Date().addingTimeInterval(-86400 * 30),
+                        updates: []
+                    )
+                }
+
                 // MARK: Donation timeline
                 Section("Donation history") {
                     if donations.isEmpty {
@@ -701,7 +733,6 @@ struct DonationTimelineRow: View {
                     .buttonStyle(.plain)
                 }
 
-                // Tap hint
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.right.circle")
                         .font(.caption2)

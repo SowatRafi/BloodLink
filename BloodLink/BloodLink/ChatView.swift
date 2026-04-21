@@ -1,3 +1,10 @@
+//
+//  ProfileView.swift
+//  BloodLink
+//
+//  Created by Sowad Hossain Rafi on 20/4/26.
+//
+
 import SwiftUI
 import PhotosUI
 import Combine
@@ -282,6 +289,7 @@ struct ChatView: View {
     @State private var showCallConfirm = false
     @State private var showCallScreen = false
     @State private var showReportUpload = false
+    @State private var showRecoveryUpdate = false
     @State private var callTimer = 0
     @State private var callTimerActive = false
 
@@ -407,7 +415,7 @@ struct ChatView: View {
                 #endif
             }
 
-            // Attach menu — now opens blood report upload sheet
+            // Attach menu
             .confirmationDialog("Share", isPresented: $showAttachMenu, titleVisibility: .visible) {
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     Label("Photo", systemImage: "photo")
@@ -417,10 +425,15 @@ struct ChatView: View {
                 } label: {
                     Label("Blood report", systemImage: "doc.text.viewfinder")
                 }
+                Button {
+                    showRecoveryUpdate = true
+                } label: {
+                    Label("Recovery update", systemImage: "heart.text.square.fill")
+                }
                 Button("Cancel", role: .cancel) {}
             }
 
-            // Blood report upload sheet
+            // Blood report upload
             .sheet(isPresented: $showReportUpload) {
                 BloodReportUploadView(
                     donorName: otherName,
@@ -452,6 +465,15 @@ struct ChatView: View {
                 )
             }
 
+            // Recovery update
+            .sheet(isPresented: $showRecoveryUpdate) {
+                RecoveryUpdateView(
+                    donorName: otherName,
+                    donationDate: Date().addingTimeInterval(-86400 * 7),
+                    updates: []
+                )
+            }
+
             // Call confirm
             .confirmationDialog(
                 "Start anonymous call?",
@@ -464,7 +486,6 @@ struct ChatView: View {
                 Text("Your phone number will not be shared. The call is routed anonymously.")
             }
 
-            // Full screen call
             .fullScreenCover(isPresented: $showCallScreen) {
                 CallScreenView(
                     otherName: otherName,
@@ -474,7 +495,6 @@ struct ChatView: View {
                 )
             }
 
-            // Photo handler
             .onChange(of: selectedPhoto) {
                 Task {
                     if let data = try? await selectedPhoto?.loadTransferable(type: Data.self) {
@@ -483,7 +503,6 @@ struct ChatView: View {
                 }
             }
 
-            // Timer
             .onReceive(timer) { _ in
                 if callTimerActive { callTimer += 1 }
             }
